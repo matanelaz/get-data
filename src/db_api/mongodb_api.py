@@ -1,16 +1,16 @@
 import logging
+import os
 from pymongo import MongoClient, cursor
 
-from configuration.config import Config
 from data_layer.detections import Detections
 from utils.date_functions import move_date, get_current_date, str_to_datetime
+from utils.files_operations import load_yaml
 
 
 class MongoDB_API:
 
-    def __init__(self, env='staging', username=None, password=None):
-        username = username or Config.MONGODB_USERNAME
-        password = password or Config.MONGODB_PASS
+    def __init__(self, username, password, env='staging', ):
+
         self.__env = env
         self.__mongodb_url = f'mongodb://{username}:{password}@'
         self.__mongodb_url += {
@@ -28,14 +28,14 @@ class MongoDB_API:
         finally:
             mongo_client.close()
 
-    def get_detections(self, detector_name) -> Detections:
+    def get_detections(self, detector_name: str, since_date: str, until_date: str) -> Detections:
 
         detections = Detections()
         mongo_db_query = {
             'detector.name': detector_name,
             'timestamp': {
-                '$gte': str_to_datetime(move_date(get_current_date(), - 30*5)),
-                '$lte': str_to_datetime(move_date(get_current_date(), - 30*3)),
+                '$gte': str_to_datetime(since_date),
+                '$lte': str_to_datetime(until_date),
             }
         }
         data = self.execute(collection_name='detections', action='find', query=mongo_db_query)
@@ -48,3 +48,21 @@ class MongoDB_API:
         ) for record in data]
         logging.info(f"{len(detections)} detection records fetched")
         return detections
+
+
+def run_example() -> Detections:
+    from pathlib import Path
+    credentials_path = os.path.join(Path(__file__).parent.parent, 'configuration', 'mongodb_credentials.yaml')
+    mongodb_credentials = load_yaml(credentials_path)
+    mongodb_api = MongoDB_API(username=mongodb_credentials['username'], password=mongodb_credentials['password'])
+    return mongodb_api.get_detections(
+        detector_name='rapid_cliff',
+        since_date=move_date(get_current_date(), - 30*5),
+        until_date=move_date(get_current_date(), - 30*3)
+    )
+
+
+if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+    detections = run_example()
+    print(f"{len(detections)} detections fetched from mongodb")
