@@ -1,3 +1,4 @@
+import logging
 import os
 import pandas as pd
 import apache_beam as beam
@@ -6,9 +7,10 @@ from augury_beam.io.proto import ReadAllAuguryProto
 
 from augury_beam.options import AuguryPipelineOptions
 from augury_proto.ml import feature_pb2
-from configuration.config import Config
-from db_api.utils.detector_transform import DetectionTransform
-from db_api.utils.parameters import feature_list
+from src.configuration.config import Config
+from src.db_api.utils.detector_transform import DetectionTransform
+from src.db_api.utils.parameters import feature_list
+from src.utils.argparser import init_parser
 
 
 class Beam_API:
@@ -46,8 +48,18 @@ class Beam_API:
         else:
             self.__beam_pipeline.run()
 
-    def get_machine_features(self):
-        # TODO
-        folder_prefix = f"beam-temp-{os.path.basename(Config.DETECTIONS_OUTPUT_DIR[:-1])}"
-        df = pd.read_csv(f'C:/Users/koren/Documents/beam-temp-beam_output_files_2021-02-16-e4c2debd703011eb9e70fc4482b7ccde/88a9af05-f2d1-4d1a-9839-5d9fdac815e0..csv')
-        return df
+
+def run_example():
+    Beam_API().run()
+
+
+if __name__ == '__main__':
+    parser = init_parser()
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+    input_args, beam_pipeline_args = parser.parse_known_args()
+    Config(
+        pipeline_class='',
+        input_args=input_args,
+        beam_pipeline_args=beam_pipeline_args
+    )
+    run_example()

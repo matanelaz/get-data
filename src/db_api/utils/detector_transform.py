@@ -1,11 +1,12 @@
 import datetime
 
 import apache_beam as beam
+from augury_data_utilities.helpers.component_helper import ComponentType, ComponentHelper
 from augury_data_utilities.helpers.machine_features import MachineFeaturesEnrichment
 import pandas as pd
+from augury_data_utilities.helpers.machine_helper import MachineHelper
 
-from db_api.utils.parameters import feature_list
-
+from src.db_api.utils.parameters import feature_list
 
 def convert_to_csv(mfg):
     df = mfg['df']
@@ -22,6 +23,8 @@ class DetectorFeatures(beam.DoFn):
         features['machine_id'] = mfg.machine.machine_id
         features['recorded_at'] = datetime.datetime.utcfromtimestamp(mfg.grouping_time.seconds)
         features['session_id'] = mfg.grouping_id
+        motor_component = MachineHelper.get_component_by_type(mfg.machine, ComponentType.MOTOR)
+        features['is_servo'] = ComponentHelper.is_servo_motor(motor_component)
         features['parsed_features'] = MachineFeaturesEnrichment(mfg).parse_machine_features(filter_invalid=False)
         yield features
 
@@ -32,10 +35,11 @@ class FlatFeatures(beam.DoFn):
         m_id = mfg['machine_id']
         recorded_at = mfg['recorded_at']
         session_id = mfg['session_id']
+        is_servo = mfg['is_servo']
 
         for k in mfg['parsed_features'].keys():
             c_id, bearing, plane = k.component_id, k.bearing_num, k.plane
-            d = {"machine_id": m_id, "recorded_at": recorded_at, "session_id": session_id, "component_id": c_id,
+            d = {"machine_id": m_id, "is_servo": is_servo, "recorded_at": recorded_at, "session_id": session_id, "component_id": c_id,
                  "bearing": bearing, "plane": plane}
             vals = mfg['parsed_features'][k]
             for col in feature_list:
