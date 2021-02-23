@@ -16,6 +16,7 @@ setuptools.setup(
         "shap==0.35.0",
         "cassandra-driver==3.17.0",
         "augury-beam @ git+https://github.com/augurysys/data-common.git@{}#egg=augury-beam-0.0.1#subdirectory=python/augury_beam".format(data_common_branch),
-        "trend-storage @ git+https://github.com/augurysys/data-common.git@{}#egg=trend-storage-0.1.0#subdirectory=python/trend_storage".format(data_common_branch)
+        "trend-storage @ git+https://github.com/augurysys/data-common.git@{}#egg=trend-storage-0.1.0#subdirectory=python/trend_storage".format(data_common_branch),
+        "augury-proto @ git+https://github.com/augurysys/data-common.git#subdirectory=python/augury_proto",
     ],
 )

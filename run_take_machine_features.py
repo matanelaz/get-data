@@ -1,9 +1,8 @@
 import logging
 
+from src.beam_api import Beam_API
 from src.configuration.config import Config
-from src.db_api.beam_api import Beam_API
 from src.utils.argparser import init_parser
-
 
 
 if __name__ == '__main__':
@@ -14,4 +13,4 @@ if __name__ == '__main__':
         input_args=input_args,
         beam_pipeline_args=beam_pipeline_args
     )
-    Beam_API().run()
+    Beam_API().run_take_machine_features()
