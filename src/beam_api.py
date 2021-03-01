@@ -1,9 +1,14 @@
 import apache_beam as beam
 import pandas as pd
+from apache_beam.options.pipeline_options import StandardOptions
+from augury_beam.io.proto import ReadAllAuguryProto
 from augury_beam.options import AuguryPipelineOptions
+from augury_proto.ml import feature_pb2
 
 from src.configuration.config import Config
+from src.ptransformers.new_trend_ptransform import New_Trend_PTransform
 from src.ptransformers.take_machine_features_ptransform import Take_Machine_Features_PTransform
+from src.ptransformers.utils.parameters import feature_list
 
 
 class Beam_API:
@@ -33,8 +38,7 @@ class Beam_API:
                                 )
             batch = False
         else:
-            input_pattern = [Config.FEATURES_INPUT_DIR + '**' if Config.FEATURES_INPUT_DIR.endswith(
-                '/') else Config.FEATURES_INPUT_DIR]
+            input_pattern = [Config.FEATURES_INPUT_DIR + '**' if Config.FEATURES_INPUT_DIR.endswith('/') else Config.FEATURES_INPUT_DIR]
             machine_features = (
                     beam_pipeline
                     | "Input pattern" >> beam.Create(input_pattern)
@@ -44,8 +48,8 @@ class Beam_API:
 
         detections = (
                 machine_features
-                | "Run inference (prediction on features)" >> DetectionTransform(detector_name="rapid_cliff",
-                                                                                 batch_mode=batch)
+                | "Run inference (prediction on features)" >> New_Trend_PTransform(detector_name="rapid_cliff",
+                                                                                   batch_mode=batch)
         )
         detections | "Write to csv" >> beam.io.textio.WriteToText(Config.DETECTIONS_OUTPUT_DIR, file_name_suffix='.csv',
                                                                   header=",".join(feature_list))

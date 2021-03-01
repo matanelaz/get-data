@@ -1,10 +1,10 @@
 import datetime
-
 import apache_beam as beam
 from augury_data_utilities.helpers.component_helper import ComponentType, ComponentHelper
 from augury_data_utilities.helpers.machine_features import MachineFeaturesEnrichment
 import pandas as pd
 from augury_data_utilities.helpers.machine_helper import MachineHelper
+from src.ptransformers.utils.parameters import feature_list
 
 
 def convert_to_csv(mfg):
