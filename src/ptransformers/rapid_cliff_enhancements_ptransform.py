@@ -21,20 +21,25 @@ def convert_to_csv(df):
 
 class _Flat_Features(beam.DoFn):
     def process(self, mfg, **kwargs):
-        flatted_features = defaultdict(list)
+        flatted_features = []
         machine_id = mfg['machine_id']
         recorded_at = mfg['recorded_at']
         session_id = mfg['session_id']
 
         for unflatted_key in mfg['parsed_features'].keys():
-            flatted_features['machine_id'].append(machine_id)
-            flatted_features['recorded_at'].append(recorded_at)
-            flatted_features['session_id'].append(session_id)
-            flatted_features['component_id'].append(unflatted_key.component_id)
-            flatted_features['bearing'].append(unflatted_key.bearing_num)
-            flatted_features['plane'].append(unflatted_key.plane)
+            flatted_features_row = {
+                'machine_id': machine_id,
+                'recorded_at': recorded_at,
+                'session_id': session_id,
+                'component_id': unflatted_key.component_id,
+                'bearing': unflatted_key.bearing_num,
+                'plane': unflatted_key.plane,
+            }
+
             for parsed_feature in rapid_cliff_enhancements_features_list:
-                flatted_features[parsed_feature].append(mfg['parsed_features'][unflatted_key].get(parsed_feature))
+                if parsed_feature not in flatted_features_row:
+                    flatted_features_row[parsed_feature] = mfg['parsed_features'][unflatted_key].get(parsed_feature)
+            flatted_features.append(flatted_features_row)
         df = pd.DataFrame(flatted_features).fillna('').astype(str)
         df = df[df['vibration_session_machine_on'] == '1']
         yield df if len(df) else None
