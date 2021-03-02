@@ -1,10 +1,8 @@
-import datetime
 import apache_beam as beam
-from augury_data_utilities.helpers.component_helper import ComponentType, ComponentHelper
-from augury_data_utilities.helpers.machine_features import MachineFeaturesEnrichment
 import pandas as pd
-from augury_data_utilities.helpers.machine_helper import MachineHelper
-from src.ptransformers.utils.parameters import feature_list
+
+from src.ptransformers.utils.detector_features import Detector_Features
+from src.ptransformers.utils.parameters import new_trand_feature_list
 
 
 def convert_to_csv(mfg):
@@ -14,18 +12,6 @@ def convert_to_csv(mfg):
         row = ",".join(record)
         rows.append(row)
     return rows
-
-
-class _Detector_Features(beam.DoFn):
-    def process(self, mfg, **kwargs):
-        features = {}
-        features['machine_id'] = mfg.machine.machine_id
-        features['recorded_at'] = datetime.datetime.utcfromtimestamp(mfg.grouping_time.seconds)
-        features['session_id'] = mfg.grouping_id
-        motor_component = MachineHelper.get_component_by_type(mfg.machine, ComponentType.MOTOR)
-        features['is_servo'] = ComponentHelper.is_servo_motor(motor_component)
-        features['parsed_features'] = MachineFeaturesEnrichment(mfg).parse_machine_features(filter_invalid=False)
-        yield features
 
 
 class _Flat_Features(beam.DoFn):
@@ -41,11 +27,11 @@ class _Flat_Features(beam.DoFn):
             d = {"machine_id": m_id, "is_servo": is_servo, "recorded_at": recorded_at, "session_id": session_id, "component_id": c_id,
                  "bearing": bearing, "plane": plane}
             vals = mfg['parsed_features'][k]
-            for col in feature_list:
+            for col in new_trand_feature_list:
                 if col not in d.keys():
                     d[col] = vals.get(col, None)
             feature_vals.append(d)
-        df = pd.DataFrame(feature_vals)[feature_list].fillna('').astype(str)
+        df = pd.DataFrame(feature_vals)[new_trand_feature_list].fillna('').astype(str)
         mfg['df'] = df[df['vibration_session_machine_on'] == '1']
         if mfg['df'].shape[0] == 0:
             mfg['df'] = None
@@ -64,7 +50,7 @@ class New_Trend_PTransform(beam.PTransform):
 
     def expand(self, machine_features):
         detector_features = (machine_features |
-                             'MachineFeatures to DetectorFeatures' >> beam.ParDo(_Detector_Features()))
+                             'MachineFeatures to DetectorFeatures' >> beam.ParDo(Detector_Features()))
         flat_features = (detector_features | "Flat features to be " >> beam.ParDo(
             _Flat_Features()) | "filter off sessions" >> beam.Filter(lambda mfg: mfg['df'] is not None))
         csv_format = flat_features | "convert_to_csv_format" >> beam.FlatMap(convert_to_csv)

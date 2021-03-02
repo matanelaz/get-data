@@ -1,8 +1,17 @@
+import argparse
 import logging
 
 from src.beam_api import Beam_API
 from src.configuration.config import Config
-from src.utils.argparser import init_parser
+
+def init_parser():
+    parser = argparse.ArgumentParser()
+    inputs = parser.add_argument_group()
+    inputs.add_argument('--triggers-file-path',
+                        help='A path in GCS / local folder containing machine filter csv')
+    inputs.add_argument('--machine-features-output-dir-parent',
+                        help='A path in GCS / local folder to the parent of the output-path')
+    return parser
 
 
 if __name__ == '__main__':
