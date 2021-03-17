@@ -29,11 +29,11 @@ class _Flat_Features(beam.DoFn):
         for unflatted_key in mfg['parsed_features'].keys():
             flatted_features_row = {
                 'machine_id': machine_id,
-                'recorded_at': recorded_at,
-                'session_id': session_id,
                 'component_id': unflatted_key.component_id,
                 'bearing': unflatted_key.bearing_num,
                 'plane': unflatted_key.plane,
+                'recorded_at': recorded_at,
+                'session_id': session_id,
             }
 
             for parsed_feature in rapid_cliff_enhancements_features_list:

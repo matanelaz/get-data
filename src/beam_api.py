@@ -51,7 +51,7 @@ class Beam_API:
                 | "Run inference (prediction on features)" >> Rapid_Cliff_Enhancements_PTransform(detector_name="rapid_cliff", batch_mode=batch)
         )
         detections | "Write to csv" >> beam.io.textio.WriteToText(Config.DETECTIONS_OUTPUT_DIR, file_name_suffix='.csv',
-                                                                  header=",".join(['machine_id', 'recorded_at', 'session_id', 'component_id', 'bearing', 'plane'] + rapid_cliff_enhancements_features_list))
+                                                                  header=",".join(rapid_cliff_enhancements_features_list))
         return self.__run(beam_pipeline)
 
     def __run(self, beam_pipeline):
