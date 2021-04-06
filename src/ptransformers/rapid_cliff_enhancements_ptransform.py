@@ -30,6 +30,7 @@ class _Flat_Features(beam.DoFn):
             flatted_features_row = {
                 'machine_id': machine_id,
                 'component_id': unflatted_key.component_id,
+                'is_component_motor': mfg['is_component_motor_map'][unflatted_key.component_id],
                 'bearing': unflatted_key.bearing_num,
                 'plane': unflatted_key.plane,
                 'recorded_at': recorded_at,

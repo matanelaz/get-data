@@ -1,6 +1,9 @@
 import datetime
+from typing import List
+
 import apache_beam
 from augury_data_utilities.helpers.component_helper import ComponentType, ComponentHelper
+from augury_data_utilities.helpers.enrichments import ComponentEnrichment
 from augury_data_utilities.helpers.machine_features import MachineFeaturesEnrichment
 from augury_data_utilities.helpers.machine_helper import MachineHelper
 
@@ -14,4 +17,12 @@ class Detector_Features(apache_beam.DoFn):
         motor_component = MachineHelper.get_component_by_type(mfg.machine, ComponentType.MOTOR)
         features['is_servo'] = ComponentHelper.is_servo_motor(motor_component)
         features['parsed_features'] = MachineFeaturesEnrichment(mfg).parse_machine_features(filter_invalid=False)
+        features['is_component_motor_map'] = self.__create_is_component_motor_map(MachineFeaturesEnrichment(mfg).machine.components)
         yield features
+
+    def __create_is_component_motor_map(self, components: List[ComponentEnrichment]):
+        is_component_motor_map = {}
+        for component in components:
+            is_component_motor_map[component.component_id] = ComponentHelper.is_motor(component.pb_component)
+
+        return is_component_motor_map

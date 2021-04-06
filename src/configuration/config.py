@@ -27,5 +27,5 @@ class Config:
         self.__class__.FEATURES_INPUT_DIR = getattr(input_args, 'machine_features_input_dir', None)
         self.__class__.DETECTIONS_OUTPUT_DIR = f"{getattr(input_args, 'detections_output_dir', '')[:-1]}_{get_current_date()}/"
 
-        self.__class__.GCS_MACHINE_FEATURES_OUTPUT_PATH = os.path.join(getattr(input_args, 'machine_features_output_dir_parent' ,''), str(calendar.timegm(datetime.now().timetuple())))
+        self.__class__.GCS_MACHINE_FEATURES_OUTPUT_PATH = f"{getattr(input_args, 'machine_features_output_dir_parent', '')}/{str(calendar.timegm(datetime.now().timetuple()))}"
         self.__class__.MACHINE_FEATURES_TRIGGER_FILE_PATH = os.path.join(WORK_DIR, getattr(input_args, 'triggers_file_path', ''))

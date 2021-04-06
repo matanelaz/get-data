@@ -1,6 +1,7 @@
 rapid_cliff_enhancements_features_list = [
     'machine_id',
     'component_id',
+    'is_component_motor',
     'bearing',
     'plane',
     'recorded_at',

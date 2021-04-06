@@ -38,7 +38,8 @@ class Beam_API:
                                 )
             batch = False
         else:
-            input_pattern = [Config.FEATURES_INPUT_DIR + '**' if Config.FEATURES_INPUT_DIR.endswith('/') else Config.FEATURES_INPUT_DIR]
+            input_pattern = [Config.FEATURES_INPUT_DIR + '**' if Config.FEATURES_INPUT_DIR.endswith(
+                '/') else Config.FEATURES_INPUT_DIR]
             machine_features = (
                     beam_pipeline
                     | "Input pattern" >> beam.Create(input_pattern)
@@ -48,10 +49,12 @@ class Beam_API:
 
         detections = (
                 machine_features
-                | "Run inference (prediction on features)" >> Rapid_Cliff_Enhancements_PTransform(detector_name="rapid_cliff", batch_mode=batch)
+                | "Run inference (prediction on features)" >> Rapid_Cliff_Enhancements_PTransform(
+            detector_name="rapid_cliff", batch_mode=batch)
         )
         detections | "Write to csv" >> beam.io.textio.WriteToText(Config.DETECTIONS_OUTPUT_DIR, file_name_suffix='.csv',
-                                                                  header=",".join(rapid_cliff_enhancements_features_list))
+                                                                  header=",".join(
+                                                                      rapid_cliff_enhancements_features_list))
         return self.__run(beam_pipeline)
 
     def __run(self, beam_pipeline):
