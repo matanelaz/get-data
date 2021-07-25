@@ -6,9 +6,10 @@ from augury_beam.options import AuguryPipelineOptions
 from augury_proto.ml import feature_pb2
 
 from src.configuration.config import Config
+from src.ptransformers.miss_detector_ptransform import Miss_Detector_PTransform
 from src.ptransformers.rapid_cliff_enhancements_ptransform import Rapid_Cliff_Enhancements_PTransform
 from src.ptransformers.take_machine_features_ptransform import Take_Machine_Features_PTransform
-from src.ptransformers.utils.parameters import rapid_cliff_enhancements_features_list
+from src.ptransformers.utils.features import all_features, rapid_cliff_enhancements_features_list
 
 
 class Beam_API:
@@ -25,6 +26,7 @@ class Beam_API:
             list(triggers.T.to_dict().values()),
             Config.GCS_MACHINE_FEATURES_OUTPUT_PATH
         )
+
         )
         return self.__run(beam_pipeline)
 
@@ -49,12 +51,11 @@ class Beam_API:
 
         detections = (
                 machine_features
-                | "Run inference (prediction on features)" >> Rapid_Cliff_Enhancements_PTransform(
-            detector_name="rapid_cliff", batch_mode=batch)
+                | "Run inference (prediction on features)" >> Miss_Detector_PTransform(
+            detector_name="miss_detector", batch_mode=batch)
         )
         detections | "Write to csv" >> beam.io.textio.WriteToText(Config.DETECTIONS_OUTPUT_DIR, file_name_suffix='.csv',
-                                                                  header=",".join(
-                                                                      rapid_cliff_enhancements_features_list))
+                                                                  header=",".join(all_features))
         return self.__run(beam_pipeline)
 
     def __run(self, beam_pipeline):

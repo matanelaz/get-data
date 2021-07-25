@@ -2,16 +2,8 @@ import apache_beam as beam
 import pandas as pd
 
 from src.ptransformers.utils.detector_features import Detector_Features
-from src.ptransformers.utils.parameters import new_trand_feature_list
-
-
-def convert_to_csv(mfg):
-    df = mfg['df']
-    rows = []
-    for record in df.values.tolist():
-        row = ",".join(record)
-        rows.append(row)
-    return rows
+from src.ptransformers.utils.features import new_trand_feature_list
+from src.ptransformers.utils.utils import convert_to_csv
 
 
 class _Flat_Features(beam.DoFn):
