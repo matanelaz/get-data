@@ -54,27 +54,33 @@ def output_to_one_file(gcs_output_path):
     bucket = storage_client.get_bucket('augury-datasets-research')
     prefix = gcs_output_path.replace(f'gs://augury-datasets-research/', '')
     csv_paths = [f"gs://{bucket.name}/{csv_path.name}" for csv_path in
-                 list(bucket.list_blobs(prefix=prefix))]
+                 list(bucket.list_blobs(prefix=prefix)) if '-of-' in csv_path.name]
 
     def parallel_for(csv_path):
         csv_file = GCSFileSystem().open(csv_path, 'r')
+
         dfs = []
 
         matrix = []
         header = []
+
         for line in csv_file:
+            line = line.split(',')
             if 'machine_id' in line:  # is header
                 if matrix:
                     dfs.append(pd.DataFrame(data=matrix, columns=header))
-                header = line.split(',')
+
+                header = line
                 matrix = []
             else:
-                matrix.append(line.split(','))
+                matrix.append(line)
         dfs.append(pd.DataFrame(data=matrix, columns=header))
+
         csv_file.close()
         return dfs
 
     df_list = Parallel(n_jobs=min(len(csv_paths), 8))(delayed(parallel_for)(csv_path) for csv_path in csv_paths)
+
     df_list = sum(df_list, [])  # flat list
 
     df = pd.concat(df_list, ignore_index=True)
