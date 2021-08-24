@@ -1,3 +1,5 @@
+from typing import Union
+
 import apache_beam
 import pandas as pd
 from ad_pipeline.data_models.detector_features import DetectorFeatures
@@ -8,7 +10,7 @@ class Flat_Features(apache_beam.DoFn):
     def __init__(self):
         super().__init__()
 
-    def process(self, detector_features: DetectorFeatures, **kwargs):
+    def process(self, detector_features: Union[DetectorFeatures, None], **kwargs):
         if detector_features is not None:
             flatted_features = []
 

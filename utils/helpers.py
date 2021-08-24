@@ -1,5 +1,8 @@
-import pandas as pd
+from typing import List
 
+import pandas as pd
+from ad_pipeline.data_models.detector_features import DetectorFeatures
+from gcsfs import GCSFileSystem
 
 DEFAULT_PIPELINE_OPTION_ARGS = [
     '--runner', 'dataflow',
@@ -31,3 +34,27 @@ def convert_to_csv_format_with_header(df: pd.DataFrame):
     df = df[sorted(df.columns)]
     rows = [",".join(list(df.columns))]
     return rows + convert_to_csv_format(df)
+
+
+def csv_to_dataframes(csv_path: str) -> List[pd.DataFrame]:
+    csv_file = GCSFileSystem().open(csv_path, 'r')
+
+    dfs = []
+
+    matrix = []
+    header = []
+
+    for line in csv_file:
+        line = line.split(',')
+        if 'machine_id' in line:  # is header
+            if matrix:
+                dfs.append(pd.DataFrame(data=matrix, columns=header))
+
+            header = line
+            matrix = []
+        else:
+            matrix.append(line)
+    dfs.append(pd.DataFrame(data=matrix, columns=header))
+    csv_file.close()
+
+    return dfs

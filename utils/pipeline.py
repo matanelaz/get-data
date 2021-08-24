@@ -1,6 +1,8 @@
 from gcsfs import GCSFileSystem
 import apache_beam
 import pandas as pd
+import numpy as np
+import ast
 from augury_beam.io.feature_pool import ReadTimeRangeMachineFeatures
 from augury_beam.options import AuguryPipelineOptions
 from google.cloud import storage
@@ -8,12 +10,21 @@ from joblib import Parallel, delayed
 
 from DoFn.detector_features_builder import DetectorFeaturesBuilder
 from DoFn.flat_features import Flat_Features
-from utils.helpers import DEFAULT_PIPELINE_OPTION_ARGS, map_time_range, convert_to_csv_format_with_header
+from utils.helpers import DEFAULT_PIPELINE_OPTION_ARGS, map_time_range, convert_to_csv_format_with_header, \
+    csv_to_dataframes
 
 
-def fetch_features_to_csv(triggers_df, gcs_output_path):
+def fetch_features_to_csv(triggers_df: pd.DataFrame, gcs_output_path: str):
     beam_options = AuguryPipelineOptions(DEFAULT_PIPELINE_OPTION_ARGS)
     beam_pipeline = apache_beam.Pipeline(options=beam_options)
+
+    sessions = []
+    if 'session_ids' in triggers_df:
+        try:
+            sessions = list(np.concatenate(triggers_df['session_ids'].apply(lambda lst: np.array(ast.literal_eval(lst))).values))
+        except ValueError:
+            sessions = triggers_df['session_ids'].to_list()
+        triggers_df = triggers_df.drop('session_ids', axis=1)
 
     triggers = list(triggers_df.T.to_dict().values())
 
@@ -28,13 +39,13 @@ def fetch_features_to_csv(triggers_df, gcs_output_path):
     )
     detector_features = (
             machine_features
-            | 'MachineFeatures to DetectorFeatures' >> apache_beam.ParDo(DetectorFeaturesBuilder())
+            | 'MachineFeatures to DetectorFeatures' >> apache_beam.ParDo(DetectorFeaturesBuilder(sessions))
     )
 
     flat_features = (
             detector_features
-            | "Flat features to be " >> apache_beam.ParDo(Flat_Features())
-            | "filter off sessions" >> apache_beam.Filter(lambda df: df is not None))
+            | "Flat features" >> apache_beam.ParDo(Flat_Features())
+            | "Drop irrelevant sessions" >> apache_beam.Filter(lambda df: df is not None))
 
     flat_features_csv_format = (
             flat_features
@@ -51,33 +62,15 @@ def fetch_features_to_csv(triggers_df, gcs_output_path):
 
 def output_to_one_file(gcs_output_path):
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket('augury-datasets-research')
-    prefix = gcs_output_path.replace(f'gs://augury-datasets-research/', '')
+    sub_path = gcs_output_path[5:]
+    bucket_name = sub_path[:sub_path.index('/')]
+    bucket = storage_client.get_bucket(bucket_name)
+    prefix = gcs_output_path.replace(f'gs://{bucket_name}/', '')
     csv_paths = [f"gs://{bucket.name}/{csv_path.name}" for csv_path in
                  list(bucket.list_blobs(prefix=prefix)) if '-of-' in csv_path.name]
 
     def parallel_for(csv_path):
-        csv_file = GCSFileSystem().open(csv_path, 'r')
-
-        dfs = []
-
-        matrix = []
-        header = []
-
-        for line in csv_file:
-            line = line.split(',')
-            if 'machine_id' in line:  # is header
-                if matrix:
-                    dfs.append(pd.DataFrame(data=matrix, columns=header))
-
-                header = line
-                matrix = []
-            else:
-                matrix.append(line)
-        dfs.append(pd.DataFrame(data=matrix, columns=header))
-
-        csv_file.close()
-        return dfs
+        return csv_to_dataframes(csv_path)
 
     df_list = Parallel(n_jobs=min(len(csv_paths), 8))(delayed(parallel_for)(csv_path) for csv_path in csv_paths)
 
