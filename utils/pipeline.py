@@ -19,12 +19,13 @@ def fetch_features_to_csv(triggers_df: pd.DataFrame, gcs_output_path: str):
     beam_pipeline = apache_beam.Pipeline(options=beam_options)
 
     sessions = []
-    if 'session_ids' in triggers_df:
+    if ('session_ids' in triggers_df) or ('session_id' in triggers_df):
+        session_ids_str = 'session_ids' if 'session_ids' in triggers_df else 'session_id'
         try:
-            sessions = list(np.concatenate(triggers_df['session_ids'].apply(lambda lst: np.array(ast.literal_eval(lst))).values))
-        except ValueError:
-            sessions = triggers_df['session_ids'].to_list()
-        triggers_df = triggers_df.drop('session_ids', axis=1)
+            sessions = list(np.concatenate(triggers_df[session_ids_str].apply(lambda lst: np.array(ast.literal_eval(lst))).values))
+        except (ValueError, SyntaxError):
+            sessions = triggers_df[session_ids_str].to_list()
+        triggers_df = triggers_df.drop(session_ids_str, axis=1)
 
     triggers = list(triggers_df.T.to_dict().values())
 
@@ -80,4 +81,5 @@ def output_to_one_file(gcs_output_path):
     df = df.drop_duplicates()
     meta_columns = ['machine_id', 'trigger_time', 'session_id', 'component_id', 'bearing', 'plane']
     df = df[meta_columns + sorted([column for column in df.columns if column not in meta_columns])]
+    df = df.drop_duplicates()
     df.to_csv(f'{gcs_output_path}output.csv', index=False)

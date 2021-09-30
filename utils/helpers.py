@@ -16,8 +16,8 @@ def map_time_range(x):
     import datetime
     from augury_beam.io.feature_pool import MachineTimeRange
 
-    return MachineTimeRange(start=datetime.datetime.fromtimestamp(x['start']),
-                            end=datetime.datetime.fromtimestamp(x['end']),
+    return MachineTimeRange(start=datetime.datetime.utcfromtimestamp(x['start']),
+                            end=datetime.datetime.utcfromtimestamp(x['end']),
                             machine_id=x['machine_id'])
 
 

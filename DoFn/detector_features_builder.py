@@ -11,7 +11,7 @@ class DetectorFeaturesBuilder(apache_beam.DoFn):
     def process(self, mfg, **kwargs):
         if not self.sessions:
             yield DetectorFeatures(mfg)
-        if mfg.grouping_id in self.sessions:
+        elif mfg.grouping_id in self.sessions:
             yield DetectorFeatures(mfg)
         else:
             yield None
